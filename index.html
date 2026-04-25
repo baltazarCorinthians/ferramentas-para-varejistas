@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculo de Parcelas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+  /* small custom styles for better control */
+  .card { @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-md p-6; }
+  .glass { background: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.5)); }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col items-center p-6">
+<header class="bg-primary text-white p-4 shtaxasadow-md flex justify-between items-center">
+  <center><h1 class="font-bold text-lg">💰 LucroCerto</h1></center>
+  <a href="receber.html" class="bg-secondary text-primary px-4 py-2 rounded-lg font-semibold hover:bg-yellow-300">Ir para Movimentações</a>
+</header>  
+<marquee> <h3>Desenvolvido por Leonardo Alcantara @leogif <a href="https://wa.me/31993521546" target="_blank" rel="noopener noreferrer">Peça o seu orçamento
+</h3></a>
+</marquee>
+<center> 
+  <h1 class="text-3xl font-bold mb-6">Calculo de Parcelas</h1>
+</center>
+  <!-- Valor do Produto -->
+  <div class="bg-blue-600 text-white px-6 py-4 rounded-2xl text-2xl font-bold mb-6 shadow-lg">
+    Valor do Produto: R$ <span id="valor-produto">5000,00</span>
+  </div>
+
+  <input
+    type="number"
+    id="input-valor"
+    value="500"
+    class="mb-8 px-4 py-2 rounded-lg text-gray-900 w-64 text-center font-semibold border border-gray-400 shadow"
+    placeholder="Digite o Preço do Produto"
+  />
+
+  <!-- Tabela -->
+  <div class="w-full max-w-5xl overflow-x-auto">
+    <table class="w-full text-center border border-gray-400 rounded-lg overflow-hidden shadow-lg">
+      <thead class="bg-blue-600 text-white">
+        <tr>
+          <th class="px-4 py-2">Forma de Pagamento</th>
+          <th class="px-4 py-2">Parcelas</th>
+          <th class="px-4 py-2">Taxa (%)</th>
+          <th class="px-4 py-2">Valor da Parcela</th>
+          <th class="px-4 py-2">Valor Total</th>
+        </tr>
+      </thead>
+      <tbody id="tabela-body" class="divide-y divide-gray-300 bg-white">
+        <!-- preenchido via JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const valorProdutoSpan = document.getElementById("valor-produto");
+    const inputValor = document.getElementById("input-valor");
+    const tabelaBody = document.getElementById("tabela-body");
+
+    // Tabela de taxas
+    const taxas = [
+      { nome: "Débito", parcelas: 1, taxa: 2.49 },
+      { nome: "Pix", parcelas: 1, taxa: 1.99 },
+      { nome: "Voucher", parcelas: 1, taxa: 2.49 },
+      { nome: "Crédito", parcelas: 1, taxa: 4.49 },
+      { nome: "Crédito", parcelas: 2, taxa: 6.09 },
+      { nome: "Crédito", parcelas: 3, taxa: 6.95 },
+      { nome: "Crédito", parcelas: 4, taxa: 7.76 },
+      { nome: "Crédito", parcelas: 5, taxa: 8.62 },
+      { nome: "Crédito", parcelas: 6, taxa: 9.52 },
+      { nome: "Crédito", parcelas: 7, taxa: 10.62 },
+      { nome: "Crédito", parcelas: 8, taxa: 11.22 },
+      { nome: "Crédito", parcelas: 9, taxa: 12.14 },
+      { nome: "Crédito", parcelas: 10, taxa: 12.5 },
+      { nome: "Crédito", parcelas: 11, taxa: 13.49 },
+      { nome: "Crédito", parcelas: 12, taxa: 14.16 },
+      { nome: "Crédito", parcelas: 13, taxa: 15.16 },
+      { nome: "Crédito", parcelas: 14, taxa: 16.16 },
+      { nome: "Crédito", parcelas: 15, taxa: 17.16 },
+      { nome: "Crédito", parcelas: 16, taxa: 18.16 },
+      { nome: "Crédito", parcelas: 17, taxa: 19.16 },
+      { nome: "Crédito", parcelas: 18, taxa: 20.16 },
+      { nome: "Crédito", parcelas: 19, taxa: 22.5 },
+      { nome: "Crédito", parcelas: 20, taxa: 23.5 },
+      { nome: "Crédito", parcelas: 21, taxa: 24.5 },
+    ];
+
+    function atualizarTabela() {
+      const valorBase = parseFloat(inputValor.value) || 0;
+      valorProdutoSpan.textContent = valorBase.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+      });
+
+      tabelaBody.innerHTML = "";
+
+      taxas.forEach(t => {
+        const valorTotal = valorBase * (1 + t.taxa / 100);
+        const valorParcela = valorTotal / t.parcelas;
+
+        tabelaBody.innerHTML += `
+          <tr>
+            <td class="px-4 py-2">${t.nome}</td>
+            <td class="px-4 py-2">${t.parcelas}x</td>
+            <td class="px-4 py-2">${t.taxa.toFixed(2)}%</td>
+            <td class="px-4 py-2">R$ ${valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+            <td class="px-4 py-2">R$ ${valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          </tr>
+        `;
+      });
+    }
+
+    inputValor.addEventListener("input", atualizarTabela);
+    atualizarTabela();
+  </script>
+</body>
+</html>
