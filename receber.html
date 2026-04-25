@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Movimentações</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Tailwind Play CDN tweaks for modern UI
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#4f46e5',
+            accent: '#06b6d4'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* small custom styles for better control */
+    .card { @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-md p-6; }
+    .glass { background: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.5)); }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-sky-50 text-slate-800 antialiased">
+  <header class="bg-primary text-white p-4 shtaxasadow-md flex justify-between items-center">
+    <center><h1 class="font-bold text-lg">💰 LucroCerto</h1></center>
+    <a href="index.html" class="bg-secondary text-primary px-4 py-2 rounded-lg font-semibold hover:bg-yellow-300">Ir para Taxas</a>
+  </header>
+  
+  <div class="max-w-6xl mx-auto p-6">
+    <header class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-semibold text-slate-900">Conectar Oiapoque • Fluxo de Caixa</h1>
+        <p class="text-sm text-slate-600">Sistema Google Technology — Dados no <code>localStorage</code>. Export/Import CSV.</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="exportBtn" class="px-4 py-2 rounded-lg bg-primary text-white shadow hover:opacity-95">Exportar CSV</button>
+        <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white shadow">
+          <input id="importFile" type="file" accept="text/csv" class="hidden" />
+          <span class="text-sm">Importar CSV</span>
+        </label>
+        <button id="clearAllBtn" class="px-4 py-2 rounded-lg bg-red-50 text-red-700 border border-red-100 hover:bg-red-100">Limpar tudo</button>
+      </div>
+    </header>
+
+    <main class="grid md:grid-cols-3 gap-6">
+      <!-- Form / Add -->
+      <section class="card md:col-span-1">
+        <h2 class="text-lg font-medium mb-3">Registrar transação</h2>
+        <form id="txForm" class="space-y-3">
+          <div>
+            <label class="text-sm">Tipo</label>
+            <div class="mt-1 flex gap-2">
+              <label class="flex-1">
+                <input type="radio" name="type" value="income" checked class="peer hidden" />
+                <div class="w-full p-2 rounded-lg border peer-checked:bg-green-50 peer-checked:border-green-300">Receita</div>
+              </label>
+              <label class="flex-1">
+                <input type="radio" name="type" value="expense" class="peer hidden" />
+                <div class="w-full p-2 rounded-lg border peer-checked:bg-red-50 peer-checked:border-red-300">Despesa</div>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-sm">Data</label>
+            <input id="date" name="date" type="date" required class="mt-1 w-full rounded-md border px-3 py-2" />
+          </div>
+
+          <div>
+            <label class="text-sm">Categoria</label>
+            <input id="category" name="category" type="text" placeholder="Ex: Venda, Aluguel, Combustível" class="mt-1 w-full rounded-md border px-3 py-2" />
+          </div>
+
+          <div>
+            <label class="text-sm">Descrição</label>
+            <input id="description" name="description" type="text" placeholder="Breve descrição" class="mt-1 w-full rounded-md border px-3 py-2" />
+          </div>
+
+          <div>
+            <label class="text-sm">Valor (R$)</label>
+            <input id="amount" name="amount" type="number" step="0.01" min="0" required placeholder="0.00" class="mt-1 w-full rounded-md border px-3 py-2" />
+          </div>
+
+          <input id="txId" type="hidden" />
+
+          <div class="flex gap-2 mt-2">
+            <button type="submit" class="flex-1 px-4 py-2 rounded-lg bg-accent text-white">Salvar</button>
+            <button type="button" id="resetBtn" class="px-4 py-2 rounded-lg border">Limpar</button>
+          </div>
+
+          <p id="formMsg" class="text-sm text-red-600 mt-1 hidden"></p>
+        </form>
+
+        <hr class="my-4" />
+
+        <div>
+          <h3 class="text-sm font-medium mb-2">Resumo</h3>
+          <div class="grid grid-cols-3 gap-3 text-sm">
+            <div class="p-3 rounded-lg bg-green-50 text-green-800">
+              <div class="text-xs">Receitas</div>
+              <div id="totalIncome" class="text-lg font-semibold">R$ 0,00</div>
+            </div>
+            <div class="p-3 rounded-lg bg-red-50 text-red-800">
+              <div class="text-xs">Despesas</div>
+              <div id="totalExpense" class="text-lg font-semibold">R$ 0,00</div>
+            </div>
+            <div class="p-3 rounded-lg bg-slate-50 text-slate-900">
+              <div class="text-xs">Saldo</div>
+              <div id="balance" class="text-lg font-semibold">R$ 0,00</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Filters & quick stats -->
+      <section class="card md:col-span-2">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-medium">Transações</h2>
+          <div class="text-sm text-slate-600">Use a busca e filtros para encontrar registros rapidamente</div>
+        </div>
+
+        <div class="mt-4 grid md:grid-cols-4 gap-3">
+          <input id="search" type="search" placeholder="Buscar descrição ou categoria" class="rounded-md border px-3 py-2" />
+          <select id="filterType" class="rounded-md border px-3 py-2">
+            <option value="all">Todos</option>
+            <option value="income">Receita</option>
+            <option value="expense">Despesa</option>
+          </select>
+          <input id="fromDate" type="date" class="rounded-md border px-3 py-2" />
+          <input id="toDate" type="date" class="rounded-md border px-3 py-2" />
+        </div>
+
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-sm table-auto">
+            <thead class="text-left text-slate-600">
+              <tr>
+                <th class="p-2">Data</th>
+                <th class="p-2">Descrição</th>
+                <th class="p-2">Categoria</th>
+                <th class="p-2">Tipo</th>
+                <th class="p-2 text-right">Valor (R$)</th>
+                <th class="p-2">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="txList">
+              <!-- rows populated by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div id="emptyState" class="mt-6 text-center text-slate-500">Nenhuma transação cadastrada ainda. Use o formulário para adicionar.</div>
+      </section>
+    </main>
+
+    <footer class="mt-8 text-center text-xs text-slate-500">Criado por <a href ="fabricasite.com.br">Fabrica Site</a> — SPA LocalStorage • Exporte/importe CSV para backups</footer>
+  </div>
+
+  <script>
+    // --- Constants and helpers ---
+    const STORAGE_KEY = 'cashflow_spa_v1';
+
+    const $ = (id) => document.getElementById(id);
+    const formatCurrency = v => {
+      return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+    const todayISO = () => new Date().toISOString().slice(0,10);
+
+    // --- App state ---
+    let transactions = [];
+
+    // --- Load / Save ---
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        transactions = raw ? JSON.parse(raw) : [];
+      } catch (e) { transactions = []; }
+    }
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+    }
+
+    // --- CRUD ---
+    function addTransaction(tx) {
+      tx.id = tx.id || cryptoRandomId();
+      transactions.push(tx);
+      save();
+      render();
+    }
+    function updateTransaction(id, patch) {
+      const idx = transactions.findIndex(t=>t.id===id);
+      if (idx>=0) { transactions[idx] = {...transactions[idx], ...patch}; save(); render(); }
+    }
+    function deleteTransaction(id) {
+      transactions = transactions.filter(t=>t.id!==id); save(); render();
+    }
+
+    function cryptoRandomId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+    // --- Render / UI ---
+    function render() {
+      const tbody = $('txList'); tbody.innerHTML = '';
+      const filtered = applyFilters();
+
+      if (filtered.length===0) { $('emptyState').style.display = 'block'; } else { $('emptyState').style.display = 'none'; }
+
+      filtered.sort((a,b)=> b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+
+      for (const tx of filtered) {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-100';
+        tr.innerHTML = `
+          <td class="p-2 align-top">${tx.date}</td>
+          <td class="p-2 align-top">${escapeHtml(tx.description || '')}</td>
+          <td class="p-2 align-top">${escapeHtml(tx.category || '')}</td>
+          <td class="p-2 align-top">${tx.type === 'income' ? '<span class="text-green-700 font-semibold">Receita</span>' : '<span class="text-red-700 font-semibold">Despesa</span>'}</td>
+          <td class="p-2 text-right align-top">${tx.type === 'income' ? formatCurrency(tx.amount) : '-' + formatCurrency(tx.amount)}</td>
+          <td class="p-2 align-top">
+            <div class="flex gap-2">
+              <button data-id="${tx.id}" class="editBtn px-2 py-1 rounded border text-xs">Editar</button>
+              <button data-id="${tx.id}" class="delBtn px-2 py-1 rounded border text-xs text-red-600">Apagar</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      calculateTotals(filtered);
+      attachRowListeners();
+    }
+
+    function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+    // --- Filters ---
+    function applyFilters(){
+      const q = ($('search').value || '').trim().toLowerCase();
+      const type = $('filterType').value;
+      const from = $('fromDate').value;
+      const to = $('toDate').value;
+
+      return transactions.filter(t => {
+        if (type !== 'all' && t.type !== type) return false;
+        if (from && t.date < from) return false;
+        if (to && t.date > to) return false;
+        if (q) {
+          const hay = (t.description + ' ' + t.category).toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+    }
+
+    // --- Totals ---
+    function calculateTotals(list){
+      let inc = 0, exp = 0;
+      for (const t of list) {
+        if (t.type === 'income') inc += Number(t.amount || 0);
+        else exp += Number(t.amount || 0);
+      }
+      $('totalIncome').textContent = formatCurrency(inc);
+      $('totalExpense').textContent = formatCurrency(exp);
+      $('balance').textContent = formatCurrency(inc - exp);
+    }
+
+    // --- Form handling & validations ---
+    function resetForm(){
+      $('txForm').reset(); $('txId').value = ''; $('formMsg').classList.add('hidden');
+      $('date').value = todayISO();
+    }
+
+    function handleFormSubmit(e){
+      e.preventDefault();
+      const id = $('txId').value || null;
+      const type = document.querySelector('input[name="type"]:checked').value;
+      const date = $('date').value;
+      const category = $('category').value.trim();
+      const description = $('description').value.trim();
+      const amountRaw = $('amount').value;
+
+      const msg = $('formMsg'); msg.classList.add('hidden');
+
+      // validations
+      if (!date) { showFormError('Informe uma data.'); return; }
+      if (!amountRaw || Number(amountRaw) <= 0) { showFormError('Valor deve ser maior que 0.'); return; }
+      if (Math.abs(Number(amountRaw)) > 999999999) { showFormError('Valor muito grande.'); return; }
+
+      const tx = { id, type, date, category, description, amount: Number(Number(amountRaw).toFixed(2)) };
+
+      if (id) updateTransaction(id, tx);
+      else addTransaction(tx);
+
+      resetForm();
+    }
+
+    function showFormError(text){ const msg = $('formMsg'); msg.textContent = text; msg.classList.remove('hidden'); }
+
+    // --- Row actions ---
+    function attachRowListeners(){
+      document.querySelectorAll('.delBtn').forEach(btn => {
+        btn.onclick = () => {
+          const id = btn.dataset.id;
+          if (confirm('Apagar este registro?')) deleteTransaction(id);
+        }
+      });
+      document.querySelectorAll('.editBtn').forEach(btn => {
+        btn.onclick = () => {
+          const id = btn.dataset.id;
+          const tx = transactions.find(t=>t.id===id);
+          if (!tx) return;
+          // populate form
+          document.querySelector(`input[name='type'][value='${tx.type}']`).checked = true;
+          $('date').value = tx.date;
+          $('category').value = tx.category || '';
+          $('description').value = tx.description || '';
+          $('amount').value = tx.amount;
+          $('txId').value = tx.id;
+          window.scrollTo({top:0, behavior:'smooth'});
+        }
+      });
+    }
+
+    // --- Export / Import CSV ---
+    function exportCSV(){
+      if (!transactions.length) { alert('Nenhuma transação para exportar.'); return; }
+      const header = ['id','type','date','category','description','amount'];
+      const rows = transactions.map(t => header.map(h => csvEscape(String(t[h] ?? ''))).join(','));
+      const csv = [header.join(','), ...rows].join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'cashflow_export.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }
+    function csvEscape(v){ if (v.includes(',')||v.includes('\n')||v.includes('"')) return '"'+v.replaceAll('"','""')+'"'; return v; }
+
+    function handleImportFile(file){
+      const reader = new FileReader();
+      reader.onload = (ev)=>{
+        const text = ev.target.result;
+        try { const parsed = parseCSV(text); applyImported(parsed); }
+        catch(e){ alert('Erro ao importar CSV: ' + e.message); }
+      }
+      reader.readAsText(file,'UTF-8');
+    }
+
+    function parseCSV(text){
+      // very small CSV parser for simple files with header in first line
+      const lines = text.replaceAll('\r','').split('\n').filter(l=>l.trim()!=='');
+      if (!lines.length) throw new Error('CSV vazio');
+      const headers = lines.shift().split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+      const arr = [];
+      for (const line of lines){
+        const values = splitCSVLine(line);
+        const obj = {};
+        for (let i=0;i<headers.length;i++){ obj[headers[i]] = (values[i] ?? '').replace(/^"|"$/g,''); }
+        arr.push(obj);
+      }
+      return arr;
+    }
+    function splitCSVLine(line){
+      const result = []; let cur = '', inQuotes=false;
+      for (let i=0;i<line.length;i++){
+        const ch = line[i];
+        if (ch === '"') { if (inQuotes && line[i+1]==='"') { cur += '"'; i++; } else inQuotes = !inQuotes; continue; }
+        if (ch === ',' && !inQuotes) { result.push(cur); cur=''; continue; }
+        cur += ch;
+      }
+      result.push(cur);
+      return result;
+    }
+
+    function applyImported(rows){
+      // Accept rows that have at least type,date,amount
+      let added = 0;
+      for (const r of rows){
+        const type = (r.type || r.tipo || '').toLowerCase();
+        const date = r.date || r.data || todayISO();
+        const amount = Number((r.amount || r.valor || r.value || 0).replace(',','.')) || 0;
+        if (!['income','expense','receita','despesa'].includes(type)) continue;
+        const normalizedType = (type.startsWith('r')||type==='income' || type==='receita') ? 'income' : 'expense';
+        if (!date || !amount) continue;
+        const tx = {
+          id: cryptoRandomId(),
+          type: normalizedType,
+          date: date.slice(0,10),
+          category: r.category || r.categoria || '',
+          description: r.description || r.descricao || '',
+          amount: Number(Number(amount).toFixed(2))
+        };
+        transactions.push(tx); added++;
+      }
+      if (added) { save(); render(); alert(`${added} registro(s) importados com sucesso.`); }
+      else alert('Nenhum registro válido encontrado no CSV.');
+    }
+
+    // --- Utilities ---
+    function attachControls(){
+      $('txForm').addEventListener('submit', handleFormSubmit);
+      $('resetBtn').addEventListener('click', resetForm);
+
+      $('search').addEventListener('input', render);
+      $('filterType').addEventListener('change', render);
+      $('fromDate').addEventListener('change', render);
+      $('toDate').addEventListener('change', render);
+
+      $('exportBtn').addEventListener('click', exportCSV);
+      $('importFile').addEventListener('change', (e)=>{ const f = e.target.files[0]; if (f) handleImportFile(f); e.target.value = ''; });
+
+      $('clearAllBtn').addEventListener('click', ()=>{
+        if (confirm('Remover todas as transações? Essa ação não pode ser desfeita.')) { transactions=[]; save(); render(); }
+      });
+
+      // keyboard shortcut: new tx
+      document.addEventListener('keydown', (e)=>{ if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='n') { e.preventDefault(); $('amount').focus(); } });
+    }
+
+    // --- Init ---
+    (function init(){
+      load(); attachControls();
+      if (!transactions.length) {
+        // seed demo data for UX (only on first use)
+        transactions = [
+          { id: cryptoRandomId(), type:'income', date: todayISO(), category:'Venda', description:'Venda balcão', amount: 1250.00 },
+          { id: cryptoRandomId(), type:'expense', date: todayISO(), category:'Aluguel', description:'Aluguel loja', amount: 800.00 }
+        ];
+        save();
+      }
+      // set default date
+      $('date').value = todayISO();
+      render();
+    })();
+  </script>
+</body>
+</html>
